@@ -1,13 +1,36 @@
 package iss.java.list;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
- * Created by wenke on 2016/9/16.
+ * Updated by wenke on 2016/10/12.
  * TODO: Modify this class to meet requirement A and C.
  */
 public class Node {
-    private int data;
-    private Node prev;
-    private Node next;
+
+    /*
+     * volatile means "prone to modification".
+     * A volatile variable is prevented from the compiler's optimization.
+     */
+    private volatile int data;
+    private volatile Node prev;
+    private volatile Node next;
+
+    /**
+     * You must store some information (e.g. the hash code of the host list;
+        or the address of the host);
+     * Otherwise, requirement C -15.
+     */
+    private MyList host;
+
+    private Lock lock = new ReentrantLock();
+
+    public Node(){};
+
+    public Node(MyList host) {
+        this.host = host;
+    }
 
     public int getData() {
         return data;
@@ -34,5 +57,17 @@ public class Node {
     Node setNext(Node next) {
         this.next = next;
         return this;
+    }
+
+    MyList getHost(){
+        return host;
+    }
+
+    public void lock(){
+        lock.lock();
+    }
+
+    public void unlock(){
+        lock.unlock();
     }
 }
