@@ -13,23 +13,22 @@ public class Node {
      * volatile means "prone to modification".
      * A volatile variable is prevented from the compiler's optimization.
      */
-    private volatile int data;
+    private int data;
     private volatile Node prev;
     private volatile Node next;
 
     /**
-     * You must store some information (e.g. the hash code of the host list;
-        or the address of the host);
-     * Otherwise, requirement C -15.
+     * You must store some information (e.g. the hash code of the owner list;
+        or the address of the owner);
      */
-    private MyList host;
+    private MyList owner;
 
     private Lock lock = new ReentrantLock();
 
     public Node(){};
 
-    public Node(MyList host) {
-        this.host = host;
+    public Node(MyList owner) {
+        this.owner = owner;
     }
 
     public int getData() {
@@ -59,9 +58,11 @@ public class Node {
         return this;
     }
 
-    MyList getHost(){
-        return host;
+    MyList getOwner(){
+        return owner;
     }
+
+    void setOwner(MyList owner) {this.owner = owner;}
 
     public void lock(){
         lock.lock();

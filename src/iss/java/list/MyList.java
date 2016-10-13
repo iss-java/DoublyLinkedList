@@ -1,9 +1,7 @@
 package iss.java.list;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Created by wenke on 2016/9/16.
@@ -13,7 +11,7 @@ public class MyList {
     // two guards. Do not call remove() on them!!
     private Node head;
     private Node tail;
-    private int size;
+    private volatile int size;
 
     public MyList() {
         head = new Node(this).setData(0).setPrev(null);
@@ -35,36 +33,22 @@ public class MyList {
     }
 
     /**
-     * Insert a node with <pre>data</pre> after <pre>_prev</pre>.
-     *
-     * @param _prev
-     * @param data
-     * @return The node just inserted.
+     * To improve concurrency,
+     * lock on each node and its previous node instead of locking a whole table.
      */
     public Node insert(Node _prev, int data) {
         if (_prev==tail)
+            return tail;
+        if (_prev.getOwner()!=this)
             return null;
-        if (_prev.getHost()!=this)
-            return null;
-        _prev.lock();
-        try {
-            Node _next = _prev.getNext();
-            _next.lock();
-
-            try {
-                Node newNode = new Node(this).setData(data).setNext(_next).setPrev(_prev);
-                _prev.setNext(newNode);
-                _next.setPrev(newNode);
-                synchronized (this){
-                    ++size;
-                }
-                return newNode;
-            } finally {
-                _next.unlock();
-            }
-        } finally {
-            _prev.unlock();
+        Node _next = _prev.getNext();
+        Node newNode = new Node(this).setData(data).setNext(_next).setPrev(_prev);
+        _prev.setNext(newNode);
+        _next.setPrev(newNode);
+        synchronized (this) {
+            ++size;
         }
+        return newNode;
     }
 
     /**
@@ -75,34 +59,30 @@ public class MyList {
      */
     public Node remove(Node target) {
         if (target == head || target == tail)
+            return target;
+
+        if (target == null)
             return null;
 
         /**
          * Validation of node against host.
          */
-        if (target.getHost()!=this)
+        if (target.getOwner()!=this)
             return null;
 
-        target.lock();
+
         Node prev = target.getPrev();
         Node next = target.getNext();
-        target.unlock();
-        prev.lock();
-        try {
-            next.lock();
-            try {
-                prev.setNext(next);
-                next.setPrev(prev);
-                synchronized (this) {
-                    --size;
-                }
-                return prev;
-            } finally {
-                next.unlock();
-            }
-        } finally {
-            prev.unlock();
+        prev.setNext(next);
+        next.setPrev(prev);
+        /**
+         * Set the owner to null, so that it won't be removed again
+         */
+        target.setOwner(null);
+        synchronized (this) {
+            --size;
         }
+        return prev;
     }
 
     public String validate() {
